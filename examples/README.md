@@ -7,4 +7,4 @@
 
 ## Current Project Progress:
 
-![Data Science Team](/img/ai_data_science_team.jpg)
+![Data Science Team](/img/data_agents.jpg)

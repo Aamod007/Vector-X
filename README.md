@@ -35,7 +35,7 @@ Vector-X is an autonomous AI multi-agent workspace and data intelligence platfor
                                │ Agent Invocations
 ┌──────────────────────────────▼──────────────────────────────┐
 │             LangGraph Multi-Agent Team                      │
-│             (ai_data_science_team/)                         │
+│             (data_agents/)                                  │
 │                                                             │
 │  • Data Loader Agent       • Data Cleaning Agent            │
 │  • Data Wrangling Agent    • Feature Engineering Agent      │
@@ -169,7 +169,7 @@ The backend exposes RESTful endpoints for integration and automation:
 
 ```
 Vector-X/
-├── ai_data_science_team/    # LangGraph & LangChain multi-agent implementations
+├── data_agents/            # LangGraph & LangChain multi-agent implementations
 │   ├── agents/              # Cleaning, wrangling, feature engineering, SQL agents
 │   ├── ds_agents/           # EDA and statistical testing agents
 │   ├── ml_agents/           # H2O AutoML and MLflow integration agents
@@ -219,9 +219,10 @@ Contributions, bug reports, and pull requests are welcome. Please read [CONTRIBU
 
 ---
 
-## Maintainer
+## Author & Maintainer
 
-- **Repository Owner / Maintainer**: Aamod ([@Aamod007](https://github.com/Aamod007))
+- **Owner / Creator**: Aamod ([@Aamod007](https://github.com/Aamod007))
+- **Email**: [aamodkumar2006@gmail.com](mailto:aamodkumar2006@gmail.com)
 - **Repository**: [https://github.com/Aamod007/Vector-X](https://github.com/Aamod007/Vector-X)
 
 ---

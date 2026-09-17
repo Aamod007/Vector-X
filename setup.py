@@ -12,15 +12,18 @@ with open("README.md", "r", encoding="utf-8", errors="ignore") as fh:
     long_description = fh.read()
 
 version = {}
-with open("ai_data_science_team/_version.py", encoding="utf-8") as fp:
+with open("data_agents/_version.py", encoding="utf-8") as fp:
     exec(fp.read(), version)
 
 
 setup(
-    name="vector-x",
+    name="data-agents",
     version=version["__version__"],
-    description="Vector-X: Autonomous AI Multi-Agent Data Science & SOC Analytics Workspace",
-    author="Aamod007",
+    description="Vector-X: Autonomous AI Multi-Agent Data Science & Analytics Platform",
+    author="Aamod",
+    author_email="aamodkumar2006@gmail.com",
+    maintainer="Aamod",
+    maintainer_email="aamodkumar2006@gmail.com",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/Aamod007/Vector-X",

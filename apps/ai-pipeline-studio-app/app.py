@@ -30,21 +30,21 @@ except Exception:  # pragma: no cover - optional dependency
     ChatOllama = None
 from langgraph.checkpoint.memory import MemorySaver
 
-from ai_data_science_team.agents.data_loader_tools_agent import DataLoaderToolsAgent
-from ai_data_science_team.agents.data_wrangling_agent import DataWranglingAgent
-from ai_data_science_team.agents.data_cleaning_agent import DataCleaningAgent
-from ai_data_science_team.ds_agents.eda_tools_agent import EDAToolsAgent
-from ai_data_science_team.agents.data_visualization_agent import DataVisualizationAgent
-from ai_data_science_team.agents.sql_database_agent import SQLDatabaseAgent
-from ai_data_science_team.agents.feature_engineering_agent import (
+from data_agents.agents.data_loader_tools_agent import DataLoaderToolsAgent
+from data_agents.agents.data_wrangling_agent import DataWranglingAgent
+from data_agents.agents.data_cleaning_agent import DataCleaningAgent
+from data_agents.ds_agents.eda_tools_agent import EDAToolsAgent
+from data_agents.agents.data_visualization_agent import DataVisualizationAgent
+from data_agents.agents.sql_database_agent import SQLDatabaseAgent
+from data_agents.agents.feature_engineering_agent import (
     FeatureEngineeringAgent,
 )
-from ai_data_science_team.agents.workflow_planner_agent import WorkflowPlannerAgent
-from ai_data_science_team.ml_agents.h2o_ml_agent import H2OMLAgent
-from ai_data_science_team.ml_agents.mlflow_tools_agent import MLflowToolsAgent
-from ai_data_science_team.ml_agents.model_evaluation_agent import ModelEvaluationAgent
-from ai_data_science_team.multiagents.supervisor_ds_team import make_supervisor_ds_team
-from ai_data_science_team.utils.pipeline import build_pipeline_snapshot
+from data_agents.agents.workflow_planner_agent import WorkflowPlannerAgent
+from data_agents.ml_agents.h2o_ml_agent import H2OMLAgent
+from data_agents.ml_agents.mlflow_tools_agent import MLflowToolsAgent
+from data_agents.ml_agents.model_evaluation_agent import ModelEvaluationAgent
+from data_agents.multiagents.supervisor_ds_team import make_supervisor_ds_team
+from data_agents.utils.pipeline import build_pipeline_snapshot
 
 APP_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 TITLE = "AI Pipeline Studio"
@@ -1330,7 +1330,7 @@ def _pipeline_studio_load_project(*, project_dir: str, rehydrate: bool = True) -
             if not isinstance(source, str) or not source:
                 return None
             try:
-                from ai_data_science_team.tools.data_loader import auto_load_file
+                from data_agents.tools.data_loader import auto_load_file
             except Exception:
                 return None
             try:

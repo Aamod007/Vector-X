@@ -22,19 +22,19 @@ if APP_ROOT not in sys.path:
 from backend.dataset_service import DatasetService
 from backend.pipeline_service import PipelineService
 
-import ai_data_science_team as adst
-from ai_data_science_team.agents.data_loader_tools_agent import DataLoaderToolsAgent
-from ai_data_science_team.agents.data_wrangling_agent import DataWranglingAgent
-from ai_data_science_team.agents.data_cleaning_agent import DataCleaningAgent
-from ai_data_science_team.ds_agents.eda_tools_agent import EDAToolsAgent
-from ai_data_science_team.agents.data_visualization_agent import DataVisualizationAgent
-from ai_data_science_team.agents.sql_database_agent import SQLDatabaseAgent
-from ai_data_science_team.agents.feature_engineering_agent import FeatureEngineeringAgent
-from ai_data_science_team.agents.workflow_planner_agent import WorkflowPlannerAgent
-from ai_data_science_team.ml_agents.h2o_ml_agent import H2OMLAgent
-from ai_data_science_team.ml_agents.mlflow_tools_agent import MLflowToolsAgent
-from ai_data_science_team.ml_agents.model_evaluation_agent import ModelEvaluationAgent
-from ai_data_science_team.multiagents.supervisor_ds_team import make_supervisor_ds_team
+import data_agents as adst
+from data_agents.agents.data_loader_tools_agent import DataLoaderToolsAgent
+from data_agents.agents.data_wrangling_agent import DataWranglingAgent
+from data_agents.agents.data_cleaning_agent import DataCleaningAgent
+from data_agents.ds_agents.eda_tools_agent import EDAToolsAgent
+from data_agents.agents.data_visualization_agent import DataVisualizationAgent
+from data_agents.agents.sql_database_agent import SQLDatabaseAgent
+from data_agents.agents.feature_engineering_agent import FeatureEngineeringAgent
+from data_agents.agents.workflow_planner_agent import WorkflowPlannerAgent
+from data_agents.ml_agents.h2o_ml_agent import H2OMLAgent
+from data_agents.ml_agents.mlflow_tools_agent import MLflowToolsAgent
+from data_agents.ml_agents.model_evaluation_agent import ModelEvaluationAgent
+from data_agents.multiagents.supervisor_ds_team import make_supervisor_ds_team
 
 try:
     from langchain_openai import ChatOpenAI
@@ -686,7 +686,7 @@ def _generate_local_dataset_analysis(prompt: str, df: pd.DataFrame | None, meta:
     preview_records = df.head(15).replace({np.nan: None}).to_dict(orient="records")
     
     # 3. Python Code artifact
-    code = f"""# AI Data Science Team Generated Code
+    code = f"""# Data Agents Generated Code
 import pandas as pd
 import plotly.express as px
 

@@ -17,9 +17,9 @@ import html
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_openai import ChatOpenAI
 
-from ai_data_science_team.ds_agents import EDAToolsAgent
-from ai_data_science_team.utils.matplotlib import matplotlib_from_base64
-from ai_data_science_team.utils.plotly import plotly_from_dict
+from data_agents.ds_agents import EDAToolsAgent
+from data_agents.utils.matplotlib import matplotlib_from_base64
+from data_agents.utils.plotly import plotly_from_dict
 
 # Helpers
 

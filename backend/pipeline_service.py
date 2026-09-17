@@ -3,7 +3,7 @@ import json
 import time
 import shutil
 import pandas as pd
-from ai_data_science_team.utils.pipeline import build_pipeline_snapshot
+from data_agents.utils.pipeline import build_pipeline_snapshot
 
 APP_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 STORE_DIR = os.path.join(APP_ROOT, "pipeline_store")

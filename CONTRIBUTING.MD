@@ -70,7 +70,7 @@ cd ..
 ### Python (Backend & Agents)
 - Follow PEP 8 style guidelines.
 - Use explicit type annotations for function signatures where possible.
-- Avoid introducing circular imports across `backend` and `ai_data_science_team`.
+- Avoid introducing circular imports across `backend` and `data_agents`.
 - Ensure new agent tools properly handle exceptions and return structured dictionary responses.
 
 ### TypeScript / React (Frontend)
