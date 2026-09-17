@@ -207,19 +207,22 @@ export const Settings: React.FC = () => {
                   onChange={(e) => setSettings({ ...settings, llm_provider: e.target.value })}
                   style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', marginTop: '0.3rem', backgroundColor: '#ffffff' }}
                 >
+                  <option value="OpenRouter">OpenRouter (Free & Universal Models)</option>
                   <option value="OpenAI">OpenAI (Cloud)</option>
                   <option value="Ollama">Ollama (Local Models)</option>
                 </select>
                 <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.25rem', display: 'block' }}>
-                  Choose OpenAI for high-capability models or Ollama for offline local execution.
+                  Choose OpenRouter for free/universal models, OpenAI for direct API access, or Ollama for offline local execution.
                 </span>
               </div>
 
-              {settings.llm_provider === 'OpenAI' ? (
+              {settings.llm_provider !== 'Ollama' ? (
                 <>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>OpenAI API Key</label>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>
+                        {settings.llm_provider === 'OpenRouter' ? 'OpenRouter API Key' : 'OpenAI API Key'}
+                      </label>
                       {isKeyValid ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', color: '#16a34a', fontWeight: 600 }}>
                           <Check size={12} /> Key format valid
@@ -230,7 +233,7 @@ export const Settings: React.FC = () => {
                         </span>
                       ) : (
                         <span style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 600 }}>
-                          API key required for OpenAI
+                          API key required
                         </span>
                       )}
                     </div>
@@ -238,7 +241,7 @@ export const Settings: React.FC = () => {
                       <Key size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                       <input
                         type={showApiKey ? 'text' : 'password'}
-                        placeholder={settings.openai_api_key_masked || "sk-proj-..."}
+                        placeholder={settings.openai_api_key_masked || "sk-or-v1-..."}
                         value={apiKeyInput}
                         onChange={(e) => setApiKeyInput(e.target.value)}
                         style={{ width: '100%', padding: '0.5rem 2.5rem 0.5rem 2.2rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
@@ -260,6 +263,7 @@ export const Settings: React.FC = () => {
                       onChange={(e) => setSettings({ ...settings, model_name: e.target.value })}
                       style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', marginTop: '0.3rem', backgroundColor: '#ffffff' }}
                     >
+                      <option value="z-ai/glm-5.2:free">z-ai/glm-5.2:free (OpenRouter Free Model — Configured)</option>
                       <option value="gpt-4o-mini">gpt-4o-mini (Fast & efficient — Default)</option>
                       <option value="gpt-4o">gpt-4o (High performance multimodal)</option>
                       <option value="gpt-4.1-mini">gpt-4.1-mini</option>
@@ -268,6 +272,20 @@ export const Settings: React.FC = () => {
                       <option value="gpt-5.1">gpt-5.1</option>
                       <option value="gpt-5.2">gpt-5.2</option>
                     </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>API Base URL (Optional / OpenRouter)</label>
+                    <input
+                      type="text"
+                      placeholder="https://openrouter.ai/api/v1"
+                      value={settings.openai_base_url || ''}
+                      onChange={(e) => setSettings({ ...settings, openai_base_url: e.target.value })}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', marginTop: '0.3rem' }}
+                    />
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.2rem', display: 'block' }}>
+                      Defaults to https://openrouter.ai/api/v1 when using OpenRouter.
+                    </span>
                   </div>
                 </>
               ) : (

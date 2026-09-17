@@ -1,3 +1,9 @@
+# Environment secrets
+.env
+.env.*
+!.env.example
+*.env
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -188,3 +194,6 @@ dist/
 # Conda Environments
 environment_ds4b_301p_dev.yml
 
+# Presentation & Workspace uploads
+*.pptx
+temp/workspace_uploads/

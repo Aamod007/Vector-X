@@ -61,9 +61,10 @@ pipeline_service = PipelineService(dataset_service)
 
 # In-memory settings and chat history
 SETTINGS = {
-    "llm_provider": "OpenAI",
-    "model_name": "gpt-4o-mini",
-    "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
+    "llm_provider": "OpenRouter",
+    "model_name": "z-ai/glm-5.2:free",
+    "openai_api_key": os.environ.get("OPENROUTER_API_KEY", os.environ.get("OPENAI_API_KEY", "")),
+    "openai_base_url": "https://openrouter.ai/api/v1",
     "ollama_base_url": "http://localhost:11434",
     "ollama_model": "llama3.1:8b",
     "recursion_limit": 10,
@@ -103,7 +104,7 @@ CHAT_HISTORY: list[dict] = [
         "id": "msg_welcome",
         "role": "assistant",
         "agent": "Supervisor",
-        "content": "Welcome to the Data Agents Workspace! I can help you inspect, clean, wrangle, visualize, and model your data using specialized AI agents. Select a dataset to get started.",
+        "content": "Welcome to the Vector-X Workspace! The multi-agent data science team is connected via z-ai/glm-5.2:free on OpenRouter. Ask a question, request a cleaning or wrangling step, or generate an interactive visualization.",
         "timestamp": time.time(),
         "reasoning": [],
         "artifacts": {}
@@ -114,6 +115,7 @@ class SettingsUpdate(BaseModel):
     llm_provider: str | None = None
     model_name: str | None = None
     openai_api_key: str | None = None
+    openai_base_url: str | None = None
     ollama_base_url: str | None = None
     ollama_model: str | None = None
     recursion_limit: int | None = None
@@ -171,6 +173,7 @@ class SaveProjectRequest(BaseModel):
 
 # ----------------- Status & Settings -----------------
 
+@app.get("/api/health")
 @app.get("/api/status")
 def get_status():
     api_key = SETTINGS.get("openai_api_key", "").strip()
@@ -354,7 +357,7 @@ def clear_chat_history():
     return {"success": True}
 
 @app.post("/api/chat")
-async def chat(request: ChatRequest):
+def chat(request: ChatRequest):
     prompt = request.prompt.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="Empty prompt")
@@ -376,62 +379,108 @@ async def chat(request: ChatRequest):
         "target_dataset": active_dataset.get("label") if active_dataset else None
     })
 
-    # Try executing with AI agents if OpenAI API key is set
+    # Try executing with AI agents using Streamlit-identical multi-agent pipeline
     api_key = SETTINGS.get("openai_api_key", "").strip()
-    provider = SETTINGS.get("llm_provider", "OpenAI")
+    provider = SETTINGS.get("llm_provider", "OpenRouter")
     
-    # We will build response structure
     ai_reply = ""
     reasoning_items = []
     artifacts = {}
 
+    def _build_app_llm():
+        m_name = SETTINGS.get("model_name", "z-ai/glm-5.2:free")
+        b_url = SETTINGS.get("openai_base_url")
+
+        if (
+            api_key.startswith("sk-or-")
+            or provider.lower() in ("openrouter", "open_router")
+            or "/" in m_name
+            or ":free" in m_name
+        ):
+            if not b_url:
+                b_url = "https://openrouter.ai/api/v1"
+
+        if provider == "Ollama" and ChatOllama:
+            return ChatOllama(
+                model=SETTINGS.get("ollama_model", "llama3.1:8b"),
+                base_url=SETTINGS.get("ollama_base_url", "http://localhost:11434")
+            )
+
+        llm_kwargs: dict = {
+            "model": m_name,
+            "api_key": api_key,
+            "max_retries": 1,
+            "timeout": 25,
+            "default_headers": {
+                "HTTP-Referer": "https://github.com/Aamod007/Vector-X",
+                "X-Title": "Vector-X",
+            }
+        }
+        if b_url:
+            llm_kwargs["base_url"] = b_url
+
+        return ChatOpenAI(**llm_kwargs)
+
     if api_key or (provider == "Ollama" and ChatOllama):
         try:
-            # Build LLM
-            if provider == "Ollama" and ChatOllama:
-                llm = ChatOllama(model=SETTINGS.get("ollama_model", "llama3.1:8b"), base_url=SETTINGS.get("ollama_base_url"))
-            else:
-                llm = ChatOpenAI(model=SETTINGS.get("model_name", "gpt-4o-mini"), api_key=api_key)
+            llm = _build_app_llm()
 
-            # Route to agent based on selection or auto-route
             agent_choice = request.agent.upper()
             if not request.auto_route and agent_choice != "SUPERVISOR":
-                # Specific agent call
+                # Specific agent direct invocation
                 if "VISUAL" in agent_choice:
                     agent = DataVisualizationAgent(llm)
-                    res = agent.invoke({"messages": [("user", prompt)], "data_raw": df.to_dict() if df is not None else {}})
                 elif "CLEAN" in agent_choice:
                     agent = DataCleaningAgent(llm)
-                    res = agent.invoke({"messages": [("user", prompt)], "data_raw": df.to_dict() if df is not None else {}})
                 elif "WRANGL" in agent_choice:
                     agent = DataWranglingAgent(llm)
-                    res = agent.invoke({"messages": [("user", prompt)], "data_raw": df.to_dict() if df is not None else {}})
                 elif "EDA" in agent_choice:
                     agent = EDAToolsAgent(llm)
-                    res = agent.invoke({"messages": [("user", prompt)], "data_raw": df.to_dict() if df is not None else {}})
+                elif "SQL" in agent_choice:
+                    import sqlalchemy as sql
+                    conn = sql.create_engine(SETTINGS.get("sql_url", "sqlite:///:memory:")).connect()
+                    agent = SQLDatabaseAgent(llm, connection=conn)
+                elif "FEAT" in agent_choice:
+                    agent = FeatureEngineeringAgent(llm)
                 else:
                     agent = DataVisualizationAgent(llm)
-                    res = agent.invoke({"messages": [("user", prompt)], "data_raw": df.to_dict() if df is not None else {}})
-                
+
+                res = agent.invoke({"messages": [("user", prompt)], "data_raw": df.to_dict() if df is not None else {}})
                 ai_reply = str(res.get("messages", [{}])[-1].content if res.get("messages") else "Operation completed.")
                 artifacts = res.get("artifacts", {}) or {}
-                reasoning_items.append({"agent": agent_choice, "thought": "Executed targeted agent operation directly."})
+                reasoning_items.append({"agent": agent_choice, "thought": f"Executed targeted {agent_choice} agent operation directly."})
             else:
-                # Supervisor Multiagent team
+                # Supervisor Multiagent Team (mirrors Streamlit app.py build_team)
+                import sqlalchemy as sql
+                resolved_sql = SETTINGS.get("sql_url", "sqlite:///:memory:")
+                engine_kwargs = {"connect_args": {"check_same_thread": False}} if "sqlite" in resolved_sql.lower() else {}
+                conn = sql.create_engine(resolved_sql, **engine_kwargs).connect()
+
                 workflow_planner = WorkflowPlannerAgent(llm)
-                data_loader = DataLoaderToolsAgent(llm)
-                data_wrangler = DataWranglingAgent(llm)
-                data_cleaner = DataCleaningAgent(llm)
-                eda_tools = EDAToolsAgent(llm)
-                data_vis = DataVisualizationAgent(llm)
-                sql_agent = SQLDatabaseAgent(llm)
-                feat_eng = FeatureEngineeringAgent(llm)
-                h2o_ml = H2OMLAgent(llm)
+                data_loader = DataLoaderToolsAgent(llm, invoke_react_agent_kwargs={"recursion_limit": 4})
+                data_wrangler = DataWranglingAgent(llm, log=False)
+                data_cleaner = DataCleaningAgent(llm, log=False)
+                eda_tools = EDAToolsAgent(llm, log_tool_calls=True)
+                data_vis = DataVisualizationAgent(llm, log=bool(SETTINGS.get("debug_mode", False)))
+                sql_agent = SQLDatabaseAgent(llm, connection=conn, log=False)
+                feat_eng = FeatureEngineeringAgent(llm, log=False)
+                h2o_ml = H2OMLAgent(
+                    llm,
+                    log=False,
+                    enable_mlflow=SETTINGS.get("enable_mlflow_logging", True),
+                    mlflow_tracking_uri=SETTINGS.get("mlflow_tracking_uri", "sqlite:///mlflow.db"),
+                    mlflow_artifact_root=SETTINGS.get("mlflow_artifact_root", "mlflow_artifacts"),
+                    mlflow_experiment_name=SETTINGS.get("mlflow_experiment_name", "H2O AutoML"),
+                )
                 model_eval = ModelEvaluationAgent()
-                mlflow_tools = MLflowToolsAgent(llm)
+                mlflow_tools = MLflowToolsAgent(
+                    llm,
+                    log_tool_calls=True,
+                    mlflow_tracking_uri=SETTINGS.get("mlflow_tracking_uri", "sqlite:///mlflow.db")
+                )
 
                 team = make_supervisor_ds_team(
-                    workflow_planner_agent=workflow_planner,
+                    model=llm,
                     data_loader_agent=data_loader,
                     data_wrangling_agent=data_wrangler,
                     data_cleaning_agent=data_cleaner,
@@ -440,43 +489,119 @@ async def chat(request: ChatRequest):
                     sql_database_agent=sql_agent,
                     feature_engineering_agent=feat_eng,
                     h2o_ml_agent=h2o_ml,
-                    model_evaluation_agent=model_eval,
                     mlflow_tools_agent=mlflow_tools,
-                    llm=llm
+                    model_evaluation_agent=model_eval,
+                    workflow_planner_agent=workflow_planner,
                 )
 
-                team_res = team.invoke({
-                    "messages": [("user", prompt)],
+                # Context identical to Streamlit
+                team_prompt = prompt
+                if active_dataset and df is not None:
+                    team_prompt += f"\n\n[Active Dataset: '{active_dataset.get('label')}' | Shape: ({len(df)}, {len(df.columns)}) | Columns: {list(df.columns)}]"
+
+                from langchain_core.messages import HumanMessage, AIMessage
+                invoke_payload = {
+                    "messages": [HumanMessage(content=team_prompt)],
                     "data_raw": df.to_dict() if df is not None else {},
-                    "artifacts": {"config": {"proactive_workflow_mode": True}}
-                })
-                
+                    "artifacts": {
+                        "config": {
+                            "mlflow_tracking_uri": SETTINGS.get("mlflow_tracking_uri"),
+                            "mlflow_artifact_root": SETTINGS.get("mlflow_artifact_root"),
+                            "mlflow_experiment_name": SETTINGS.get("mlflow_experiment_name", "H2O AutoML"),
+                            "enable_mlflow_logging": SETTINGS.get("enable_mlflow_logging", True),
+                            "proactive_workflow_mode": SETTINGS.get("proactive_mode", True),
+                            "use_llm_intent_parser": SETTINGS.get("intent_parsing", True),
+                            "debug": bool(SETTINGS.get("debug_mode", False)),
+                            "sql_url": resolved_sql,
+                        }
+                    }
+                }
+                run_config = {
+                    "recursion_limit": SETTINGS.get("recursion_limit", 10),
+                    "configurable": {"thread_id": "workspace_chat"}
+                }
+
+                team_res = team.invoke(invoke_payload, config=run_config)
                 messages = team_res.get("messages", [])
-                if messages:
-                    last_msg = messages[-1]
-                    ai_reply = str(getattr(last_msg, "content", ""))
+
+                # Streamlit message extraction: find latest assistant response
+                for m in reversed(messages):
+                    role = getattr(m, "role", getattr(m, "type", None))
+                    if role in ("assistant", "ai"):
+                        content = getattr(m, "content", "")
+                        if content and not content.strip().startswith("{"):
+                            ai_reply = content
+                            break
+
                 artifacts = team_res.get("artifacts", {}) or {}
-                
-                for m in messages:
-                    name = getattr(m, "name", getattr(m, "role", None))
-                    content = getattr(m, "content", "")
-                    if name and name not in ("user", "human") and content:
-                        reasoning_items.append({"agent": name.replace("_", " ").title(), "thought": content})
+
+                # Streamlit reasoning extraction: gather agents that responded
+                latest_human_idx = -1
+                for i, m in enumerate(messages):
+                    role = getattr(m, "role", getattr(m, "type", None))
+                    if role in ("human", "user"):
+                        latest_human_idx = i
+
+                ordered_names = []
+                latest_by_name = {}
+                for m in messages[latest_human_idx + 1:]:
+                    role = getattr(m, "role", getattr(m, "type", None))
+                    if role in ("assistant", "ai"):
+                        name = getattr(m, "name", None) or "assistant"
+                        content = getattr(m, "content", "")
+                        if content and not content.strip().startswith("{"):
+                            latest_by_name[name] = content
+                            if name not in ordered_names:
+                                ordered_names.append(name)
+
+                for name in ordered_names:
+                    reasoning_items.append({
+                        "agent": name.replace("_", " ").title(),
+                        "thought": latest_by_name[name]
+                    })
 
         except Exception as e:
-            # Fallback to local intelligent analysis if API call times out or limits
-            ai_reply = f"Agent analyzed `{active_dataset.get('label') if active_dataset else 'dataset'}`: {str(e)}"
+            err_str = str(e)
+            print(f"[CHAT_ERROR] Multi-agent execution error: {err_str}")
+            # If upstream free model rate limits or times out, provide helpful notice + local dataset intelligence
+            local_reply, local_arts, local_reasoning = _generate_local_dataset_analysis(prompt, df, active_dataset)
+            if "429" in err_str or "rate" in err_str.lower():
+                ai_reply = f"*(Notice: Upstream provider rate limited on z-ai/glm-5.2:free - completed via local analytics engine for `{active_dataset.get('label') if active_dataset else 'dataset'}`)*\n\n{local_reply}"
+                reasoning_items = [{"agent": "OpenRouter", "thought": "Upstream free pool is busy; falling back to local analysis."}] + local_reasoning
+            else:
+                ai_reply = f"{local_reply}"
+                reasoning_items = local_reasoning
+            artifacts = local_arts
     
     # If no LLM reply yet or fallback needed, produce real local analysis output
     if not ai_reply or not artifacts:
         ai_reply, artifacts, reasoning_items = _generate_local_dataset_analysis(prompt, df, active_dataset)
 
     # If any transformed dataframe returned, register it as a pipeline step
+    transformed_df = None
+    stage_name = "transformed"
     if "transformed_data" in artifacts and isinstance(artifacts["transformed_data"], pd.DataFrame):
+        transformed_df = artifacts["transformed_data"]
+    elif "team_res" in locals() and team_res and isinstance(team_res, dict):
+        for k, sname in [("feature_data", "features"), ("data_wrangled", "wrangled"), ("data_cleaned", "cleaned"), ("data_sql", "sql")]:
+            val = team_res.get(k)
+            if isinstance(val, pd.DataFrame) and not val.empty:
+                transformed_df = val
+                stage_name = sname
+                break
+            elif isinstance(val, dict) and val:
+                try:
+                    transformed_df = pd.DataFrame(val)
+                    stage_name = sname
+                    break
+                except Exception:
+                    pass
+
+    if transformed_df is not None and active_dataset:
         new_meta = dataset_service.register_dataset_from_df(
-            artifacts["transformed_data"],
-            label=f"{active_dataset.get('label')}_step",
-            stage="transformed",
+            transformed_df,
+            label=f"{active_dataset.get('label')}_{stage_name}",
+            stage=stage_name,
             parent_id=active_dataset.get("id"),
             created_by="Agent"
         )

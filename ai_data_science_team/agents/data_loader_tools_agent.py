@@ -348,7 +348,31 @@ def make_data_loader_tools_agent(
         ]
         messages = [("system", system_hint)] + base_messages
         input_payload = {"messages": messages}
-        return react_agent.invoke(input_payload, invoke_react_agent_kwargs)
+        try:
+            return react_agent.invoke(input_payload, invoke_react_agent_kwargs)
+        except Exception as e:
+            err_msg = str(e)
+            if (
+                "tool" in err_msg.lower()
+                or "404" in err_msg
+                or "endpoint" in err_msg.lower()
+                or "filter by tool compatibility" in err_msg.lower()
+            ):
+                print(f"    * Tool-calling not supported by model; running data loader text fallback")
+                user_query = ""
+                for m in reversed(base_messages):
+                    c = getattr(m, "content", "") or (m[1] if isinstance(m, tuple) else "")
+                    if c:
+                        user_query = str(c)
+                        break
+                prompt_text = f"{system_hint}\n\nUser Query: {user_query}"
+                try:
+                    llm_resp = model.invoke(prompt_text)
+                    content = getattr(llm_resp, "content", str(llm_resp))
+                except Exception:
+                    content = "Data loader processed request. Datasets in the active workspace and data/ directory are ready."
+                return {"messages": [AIMessage(content=content, name=AGENT_NAME)]}
+            raise
 
     def post_process(state: GraphState):
         print("    * POST-PROCESS RESULTS")

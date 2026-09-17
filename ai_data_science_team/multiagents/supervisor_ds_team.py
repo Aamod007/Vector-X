@@ -332,14 +332,24 @@ Examples:
         return {"next": "FINISH"}
 
     # Router chain:
-    # - For OpenAI models: use function-calling for high-precision routing.
-    # - For other chat models (e.g., Ollama): fall back to strict text parsing.
-    if isinstance(llm, ChatOpenAI):
-        supervisor_chain = (
-            prompt
-            | llm.bind(functions=[function_def], function_call={"name": "route"})
-            | JsonOutputFunctionsParser()
-        )
+    # - For native OpenAI models: use function-calling for high-precision routing.
+    # - For other chat models (e.g., Ollama, OpenRouter non-tool models): fall back to strict text parsing.
+    is_openrouter = (
+        "openrouter" in str(getattr(llm, "openai_api_base", "") or getattr(llm, "base_url", "")).lower()
+        or ":free" in str(getattr(llm, "model_name", "")).lower()
+        or "z-ai" in str(getattr(llm, "model_name", "")).lower()
+    )
+    if isinstance(llm, ChatOpenAI) and not is_openrouter:
+        try:
+            supervisor_chain = (
+                prompt
+                | llm.bind(functions=[function_def], function_call={"name": "route"})
+                | JsonOutputFunctionsParser()
+            )
+        except Exception:
+            supervisor_chain = (
+                prompt | llm | StrOutputParser() | RunnableLambda(_parse_router_output)
+            )
     else:
         supervisor_chain = (
             prompt | llm | StrOutputParser() | RunnableLambda(_parse_router_output)
@@ -1406,10 +1416,45 @@ Examples:
                     "target_variable": planned_target,
                 }
 
-        result = supervisor_chain.invoke(
-            {"messages": clean_msgs, "last_worker": state.get("last_worker")}
-        )
-        next_worker = result.get("next")
+        result = None
+        for attempt in range(2):
+            try:
+                result = supervisor_chain.invoke(
+                    {"messages": clean_msgs, "last_worker": state.get("last_worker")}
+                )
+                break
+            except Exception as e:
+                err_str = str(e)
+                if ("429" in err_str or "rate" in err_str.lower() or "overloaded" in err_str.lower()) and attempt == 0:
+                    import time
+                    print("  Supervisor router hit rate limit; waiting 5 seconds before retrying...")
+                    time.sleep(5)
+                else:
+                    print(f"  Supervisor router invocation failed ({err_str[:80]}); falling back to keyword intent routing")
+                    break
+
+        if result and isinstance(result, dict) and result.get("next"):
+            next_worker = result.get("next")
+        else:
+            if intents.get("viz"):
+                next_worker = "Data_Visualization_Agent"
+            elif intents.get("eda"):
+                next_worker = "EDA_Tools_Agent"
+            elif intents.get("clean"):
+                next_worker = "Data_Cleaning_Agent"
+            elif intents.get("wrangle"):
+                next_worker = "Data_Wrangling_Agent"
+            elif intents.get("feature"):
+                next_worker = "Feature_Engineering_Agent"
+            elif intents.get("model"):
+                next_worker = "H2O_ML_Agent"
+            elif intents.get("sql"):
+                next_worker = "SQL_Database_Agent"
+            elif not data_ready:
+                next_worker = "Data_Loader_Tools_Agent"
+            else:
+                next_worker = "FINISH"
+
         print(
             f"  data_ready={data_ready}, last_worker={last_worker}, router_next={next_worker}"
         )

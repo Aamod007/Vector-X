@@ -49,10 +49,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navigate = useNavigate();
 
   // Settings state replicated from Streamlit
-  const [llmProvider, setLlmProvider] = useState<'OpenAI' | 'Ollama'>('OpenAI');
+  const [llmProvider, setLlmProvider] = useState<'OpenAI' | 'OpenRouter' | 'Ollama'>('OpenRouter');
   const [apiKey, setApiKey] = useState('');
   const [apiKeyValid, setApiKeyValid] = useState<boolean | null>(null);
-  const [modelChoice, setModelChoice] = useState('gpt-4o-mini');
+  const [modelChoice, setModelChoice] = useState('z-ai/glm-5.2:free');
   const [ollamaUrl, setOllamaUrl] = useState('http://localhost:11434');
   const [ollamaModel, setOllamaModel] = useState('llama3.1:8b');
   const [recursionLimit, setRecursionLimit] = useState(10);
@@ -379,13 +379,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }}
             style={{ width: '100%', padding: '0.35rem', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '4px', marginBottom: '0.5rem' }}
           >
+            <option value="OpenRouter">OpenRouter</option>
             <option value="OpenAI">OpenAI</option>
             <option value="Ollama">Ollama</option>
           </select>
 
-          {llmProvider === 'OpenAI' ? (
+          {llmProvider !== 'Ollama' ? (
             <>
-              <label style={{ fontSize: '0.725rem', color: '#64748b' }}>OpenAI API key</label>
+              <label style={{ fontSize: '0.725rem', color: '#64748b' }}>
+                {llmProvider === 'OpenRouter' ? 'OpenRouter API key' : 'OpenAI API key'}
+              </label>
               <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
                 <input
                   type="password"
@@ -411,10 +414,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }}
                 style={{ width: '100%', padding: '0.35rem', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
               >
-                <option value="gpt-4.1-mini">gpt-4.1-mini</option>
-                <option value="gpt-4.1">gpt-4.1</option>
+                <option value="z-ai/glm-5.2:free">z-ai/glm-5.2:free (Free)</option>
                 <option value="gpt-4o-mini">gpt-4o-mini</option>
                 <option value="gpt-4o">gpt-4o</option>
+                <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+                <option value="gpt-4.1">gpt-4.1</option>
                 <option value="gpt-5-mini">gpt-5-mini</option>
                 <option value="gpt-5.1">gpt-5.1</option>
                 <option value="gpt-5.2">gpt-5.2</option>

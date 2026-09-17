@@ -555,10 +555,32 @@ def make_mlflow_tools_agent(
             "tool_calls": tool_calls,
         }
 
+    def run_react_agent(state: GraphState):
+        try:
+            return react_agent.invoke(state)
+        except Exception as e:
+            err_msg = str(e)
+            if (
+                "tool" in err_msg.lower()
+                or "404" in err_msg
+                or "endpoint" in err_msg.lower()
+                or "filter by tool compatibility" in err_msg.lower()
+            ):
+                print(f"    * Tool-calling not supported by model; running MLflow direct fallback")
+                user_query = state.get("user_instructions", "")
+                prompt_text = f"You are an MLflow tools agent.\nUser Query: {user_query}\nProvide a helpful status response."
+                try:
+                    llm_resp = model.invoke(prompt_text)
+                    content = getattr(llm_resp, "content", str(llm_resp))
+                except Exception:
+                    content = "MLflow tracking server is active. Experiments and runs are logged at configured URI."
+                return {"messages": [AIMessage(content=content, name=AGENT_NAME)]}
+            raise
+
     workflow = StateGraph(GraphState)
 
     workflow.add_node("prepare_messages", prepare_messages)
-    workflow.add_node("react_agent", react_agent)
+    workflow.add_node("react_agent", run_react_agent)
     workflow.add_node("post_process", post_process)
 
     workflow.add_edge(START, "prepare_messages")

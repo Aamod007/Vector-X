@@ -91,6 +91,7 @@ export interface AppSettings {
   model_name: string;
   openai_api_key?: string;
   openai_api_key_masked?: string;
+  openai_base_url?: string;
   has_key?: boolean;
   ollama_base_url?: string;
   ollama_model?: string;

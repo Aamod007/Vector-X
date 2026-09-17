@@ -104,7 +104,7 @@ class Workspace:
         if openrouter_key:
             self._config = ConfigUpdate(
                 provider="openrouter",
-                model="nvidia/nemotron-3-ultra-550b-a55b:free",
+                model="z-ai/glm-5.2:free",
                 base_url="https://openrouter.ai/api/v1",
                 api_key=openrouter_key,
             )
@@ -124,7 +124,7 @@ class Workspace:
         else:
             self._config = ConfigUpdate(
                 provider="openrouter",
-                model="nvidia/nemotron-3-ultra-550b-a55b:free",
+                model="z-ai/glm-5.2:free",
                 base_url="https://openrouter.ai/api/v1",
                 api_key=None,
             )

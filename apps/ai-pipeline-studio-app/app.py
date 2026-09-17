@@ -4471,13 +4471,13 @@ with st.sidebar:
         model_choice = st.selectbox(
             "Model",
             [
-                "gpt-4.1-mini",
-                "gpt-4.1",
+                "z-ai/glm-5.2:free",
                 "gpt-4o-mini",
                 "gpt-4o",
+                "gpt-4.1-mini",
+                "gpt-4.1",
                 "gpt-5-mini",
                 "gpt-5.1",
-                # "gpt-5.1-codex-mini",
                 "gpt-5.2",
             ],
             key="openai_model_choice",
@@ -4935,6 +4935,16 @@ def build_team(
             "model": model_name,
             "api_key": openai_api_key,
         }
+        if (
+            str(openai_api_key or "").startswith("sk-or-")
+            or "/" in str(model_name)
+            or ":free" in str(model_name)
+        ):
+            llm_kwargs["base_url"] = "https://openrouter.ai/api/v1"
+            llm_kwargs["default_headers"] = {
+                "HTTP-Referer": "https://github.com/Aamod007/Vector-X",
+                "X-Title": "Vector-X",
+            }
         if _openai_requires_responses(model_name):
             llm_kwargs["use_responses_api"] = True
             llm_kwargs["output_version"] = "responses/v1"
