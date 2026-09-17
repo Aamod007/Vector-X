@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
+import { PipelineStudioModal } from './components/PipelineStudioModal';
 import { Workspace } from './pages/Workspace';
 import { Dashboard } from './pages/Dashboard';
 import { Datasets } from './pages/Datasets';
@@ -24,6 +25,7 @@ export const App: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isStudioModalOpen, setIsStudioModalOpen] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -112,6 +114,7 @@ export const App: React.FC = () => {
         datasets={datasets}
         onSelectDataset={handleSelectDataset}
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        onOpenStudioModal={() => setIsStudioModalOpen(true)}
       />
 
       {/* Main Layout Body */}
@@ -124,6 +127,7 @@ export const App: React.FC = () => {
             onSelectDataset={handleSelectDataset}
             onRefreshData={loadInitialData}
             onUploadClick={() => navigate('/datasets')}
+            onOpenStudioModal={() => setIsStudioModalOpen(true)}
           />
         )}
 
@@ -207,6 +211,12 @@ export const App: React.FC = () => {
           />
         </Routes>
       </div>
+
+      {/* Pipeline Studio Overlay Modal Dialog (st.dialog parity) */}
+      <PipelineStudioModal
+        isOpen={isStudioModalOpen}
+        onClose={() => setIsStudioModalOpen(false)}
+      />
     </div>
   );
 };

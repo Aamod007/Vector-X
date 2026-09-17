@@ -32,6 +32,7 @@ interface SidebarProps {
   onRefreshData?: () => void;
   telemetry?: any;
   onUploadClick?: () => void;
+  onOpenStudioModal?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -40,7 +41,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectDataset,
   onRefreshData,
   telemetry,
-  onUploadClick
+  onUploadClick,
+  onOpenStudioModal
 }) => {
   const navigate = useNavigate();
 
@@ -543,7 +545,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Open Pipeline Studio Button & Docked toggle */}
         <div>
           <button
-            onClick={() => navigate('/pipeline')}
+            onClick={() => {
+              if (dockedStudio) {
+                navigate('/pipeline');
+              } else if (onOpenStudioModal) {
+                onOpenStudioModal();
+              } else {
+                navigate('/pipeline');
+              }
+            }}
             style={{
               width: '100%',
               padding: '0.55rem',

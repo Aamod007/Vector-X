@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, LayoutGrid, Sidebar as SidebarIcon, Check } from 'lucide-react';
+import { ChevronDown, LayoutGrid, Sidebar as SidebarIcon, Check, GitFork } from 'lucide-react';
 import { DatasetMeta } from '../types';
 
 interface HeaderProps {
@@ -7,13 +7,15 @@ interface HeaderProps {
   datasets: DatasetMeta[];
   onSelectDataset: (id: string) => void;
   onToggleSidebar?: () => void;
+  onOpenStudioModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   activeDataset,
   datasets,
   onSelectDataset,
-  onToggleSidebar
+  onToggleSidebar,
+  onOpenStudioModal
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -95,7 +97,29 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      <div className="header-right">
+      <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        {onOpenStudioModal && (
+          <button
+            onClick={onOpenStudioModal}
+            className="st-btn-secondary"
+            style={{
+              padding: '0.35rem 0.65rem',
+              fontSize: '0.75rem',
+              backgroundColor: '#eff6ff',
+              color: '#1d4ed8',
+              borderColor: '#bfdbfe',
+              borderRadius: '6px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem'
+            }}
+            title="Open Pipeline Studio (Modal)"
+          >
+            <GitFork size={13} />
+            <span>Studio Dialog</span>
+          </button>
+        )}
+
         <button className="icon-btn" title="Grid Layout">
           <LayoutGrid size={16} />
         </button>

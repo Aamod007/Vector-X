@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { DatasetMeta } from '../types';
 import { uploadDataset, loadSampleDataset, deleteDataset } from '../services/api';
-import { UploadCloud, FileText, Check, Trash2, Database, Layers, ArrowRight, ExternalLink } from 'lucide-react';
+import { UploadCloud, FileText, Check, Trash2, Database, Layers, ArrowRight, ExternalLink, X, FileSpreadsheet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface DatasetsProps {
@@ -27,6 +27,8 @@ export const Datasets: React.FC<DatasetsProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadedFileChip, setUploadedFileChip] = useState<{ name: string; size: string } | null>(null);
+  const [useDemoData, setUseDemoData] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -35,6 +37,8 @@ export const Datasets: React.FC<DatasetsProps> = ({
     setError(null);
     try {
       const res = await uploadDataset(file);
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      setUploadedFileChip({ name: file.name, size: `${sizeMB}MB` });
       onRefresh();
       if (res.dataset?.id) {
         onSelectDataset(res.dataset.id);
@@ -46,11 +50,19 @@ export const Datasets: React.FC<DatasetsProps> = ({
     }
   };
 
+  const handleToggleDemoData = async (checked: boolean) => {
+    setUseDemoData(checked);
+    if (checked) {
+      handleLoadSample('churn_data.csv');
+    }
+  };
+
   const handleLoadSample = async (sampleName: string) => {
     setIsUploading(true);
     setError(null);
     try {
       const res = await loadSampleDataset(sampleName);
+      setUploadedFileChip({ name: sampleName, size: '1.0MB' });
       onRefresh();
       if (res.dataset?.id) {
         onSelectDataset(res.dataset.id);
@@ -67,6 +79,9 @@ export const Datasets: React.FC<DatasetsProps> = ({
     if (confirm(`Are you sure you want to remove dataset ${id}?`)) {
       try {
         await deleteDataset(id);
+        if (uploadedFileChip) {
+          setUploadedFileChip(null);
+        }
         onRefresh();
       } catch (err: any) {
         alert(err.message || 'Failed to delete');
@@ -77,8 +92,10 @@ export const Datasets: React.FC<DatasetsProps> = ({
   return (
     <div className="view-container">
       <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a' }}>Dataset Manager & Uploader</h2>
-        <p style={{ fontSize: '0.875rem', color: '#64748b' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', letterSpacing: '0.02em', margin: '0 0 0.25rem 0' }}>
+          Upload Data (CSV or Excel)
+        </h2>
+        <p style={{ fontSize: '0.875rem', color: '#64748b', margin: 0 }}>
           Upload your tabular data, load verified sample datasets, or connect database tables.
         </p>
       </div>
@@ -89,52 +106,108 @@ export const Datasets: React.FC<DatasetsProps> = ({
         </div>
       )}
 
-      {/* Upload Zone */}
-      <div
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          if (e.dataTransfer.files?.[0]) handleFileUpload(e.dataTransfer.files[0]);
-        }}
-        onClick={() => fileInputRef.current?.click()}
-        style={{
-          border: `2px dashed ${dragOver ? '#2563eb' : '#cbd5e1'}`,
-          backgroundColor: dragOver ? '#eff6ff' : '#ffffff',
-          borderRadius: '12px',
-          padding: '2.5rem',
-          textAlign: 'center',
-          cursor: 'pointer',
-          marginBottom: '2rem',
-          transition: 'all 0.2s ease',
-          boxShadow: 'var(--shadow-sm)'
-        }}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,.xlsx,.xls"
-          style={{ display: 'none' }}
-          onChange={(e) => {
-            if (e.target.files?.[0]) handleFileUpload(e.target.files[0]);
-          }}
-        />
-        <div style={{ display: 'inline-flex', padding: '1rem', borderRadius: '50%', backgroundColor: '#eff6ff', color: '#2563eb', marginBottom: '1rem' }}>
-          <UploadCloud size={32} />
+      {/* Use Demo Data Checkbox matching ai_exploratory_copilot.jpg */}
+      <div style={{ marginBottom: '1rem' }}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={useDemoData}
+            onChange={(e) => handleToggleDemoData(e.target.checked)}
+            style={{ width: '16px', height: '16px', accentColor: '#ec4899', cursor: 'pointer' }}
+          />
+          <span>Use demo data (Customer Churn)</span>
+        </label>
+      </div>
+
+      {/* Upload Zone matching ai_exploratory_copilot.jpg */}
+      <div style={{ marginBottom: '2rem' }}>
+        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.45rem' }}>
+          Upload CSV or Excel file
         </div>
-        <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.25rem' }}>
-          {isUploading ? 'Processing and registering dataset...' : 'Click to upload or drag and drop'}
-        </h3>
-        <p style={{ fontSize: '0.8rem', color: '#64748b' }}>
-          Supports CSV, Excel (.xlsx, .xls) up to 200MB. Full provenance and lineage are automatically recorded.
-        </p>
+
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            if (e.dataTransfer.files?.[0]) handleFileUpload(e.dataTransfer.files[0]);
+          }}
+          style={{
+            border: '2px dashed #0f172a',
+            backgroundColor: dragOver ? '#f1f5f9' : '#0f172a',
+            color: dragOver ? '#0f172a' : '#ffffff',
+            borderRadius: '10px',
+            padding: '2.5rem 1.5rem',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: 'var(--shadow-sm)'
+          }}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              if (e.target.files?.[0]) handleFileUpload(e.target.files[0]);
+            }}
+          />
+
+          <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.35rem' }}>
+            {isUploading ? 'Processing and registering dataset...' : 'Drag and drop file here'}
+          </div>
+          <div style={{ fontSize: '0.775rem', color: dragOver ? '#475569' : '#94a3b8', marginBottom: '1.25rem' }}>
+            Limit 200MB per file • CSV, XLSX
+          </div>
+
+          <button
+            type="button"
+            className="st-btn-secondary"
+            style={{
+              backgroundColor: '#1e293b',
+              color: '#ffffff',
+              borderColor: '#334155',
+              padding: '0.45rem 1.15rem',
+              borderRadius: '6px'
+            }}
+          >
+            Browse files
+          </button>
+        </div>
+
+        {/* Selected File Chip matching ai_exploratory_copilot.jpg */}
+        {(uploadedFileChip || activeDatasetId) && (
+          <div className="file-chip-card light" style={{ maxWidth: '480px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <FileSpreadsheet size={20} color="#2563eb" />
+              <div>
+                <div style={{ fontSize: '0.825rem', fontWeight: 600, color: '#0f172a' }}>
+                  {uploadedFileChip?.name || datasets.find(d => d.id === activeDatasetId)?.label || 'churn_data.csv'}
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                  {uploadedFileChip?.size || '1.0MB'}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setUploadedFileChip(null)}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.2rem' }}
+              title="Remove file"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Preloaded Sample Datasets */}
       <div style={{ marginBottom: '2rem' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.75rem' }}>
-          Sample Datasets
+          Verified Sample Datasets
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
           {SAMPLE_FILES.map((sample) => (
@@ -177,7 +250,7 @@ export const Datasets: React.FC<DatasetsProps> = ({
       {/* Active & Registered Datasets List */}
       <div>
         <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.75rem' }}>
-          Registered Datasets ({datasets.length})
+          Registered Workspace Datasets ({datasets.length})
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {datasets.map((ds) => {
@@ -213,40 +286,15 @@ export const Datasets: React.FC<DatasetsProps> = ({
                       )}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>
-                      {ds.records?.toLocaleString()} records • {ds.features} columns ({ds.columns?.slice(0, 5).join(', ')}{ds.columns?.length > 5 ? '...' : ''})
+                      {ds.records?.toLocaleString()} records • {ds.features} columns
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectDataset(ds.id);
-                      navigate('/explorer');
-                    }}
-                    style={{
-                      padding: '0.35rem 0.75rem',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      backgroundColor: '#f1f5f9',
-                      color: '#334155',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '6px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Inspect in Explorer
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <button
                     onClick={(e) => handleDelete(ds.id, e)}
-                    style={{
-                      padding: '0.35rem',
-                      color: '#ef4444',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer'
-                    }}
+                    style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.4rem' }}
                     title="Delete dataset"
                   >
                     <Trash2 size={16} />

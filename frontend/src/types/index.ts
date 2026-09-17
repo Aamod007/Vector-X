@@ -53,6 +53,10 @@ export interface ChatMessage {
     eda?: any;
     models?: any;
     predictions?: any;
+    sql_query?: string;
+    query?: string;
+    sweetviz?: any;
+    [key: string]: any;
   };
 }
 
@@ -84,6 +88,8 @@ export interface PipelineSnapshot {
   edges: PipelineEdge[];
   active_node_id: string | null;
   total_nodes: number;
+  pipeline_hash?: string;
+  target?: string;
 }
 
 export interface AppSettings {

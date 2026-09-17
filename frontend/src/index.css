@@ -905,3 +905,440 @@ body {
 .styled-table tr:hover {
   background-color: #f8fafc;
 }
+
+/* =============================================================
+   Pipeline Studio & Streamlit Parity System Styles
+   Matches Reference: ai_pipeline_studio_app.jpg, ai_exploratory_copilot.jpg
+   ============================================================= */
+
+/* Monospace Green Tags (Pipeline Hash & Dataset IDs) */
+.tag-badge-green {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  letter-spacing: 0.02em;
+  word-break: break-all;
+}
+
+.tag-badge-blue {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.tag-badge-purple {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  background-color: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+/* Streamlit Radio Buttons with Native Dot Selection */
+.st-radio-group {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  flex-wrap: wrap;
+}
+
+.st-radio-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.815rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s ease;
+}
+
+.st-radio-item:hover {
+  opacity: 0.85;
+}
+
+.st-radio-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.st-radio-item.active .st-radio-dot {
+  border-color: #e11d48; /* Magenta/red accent from reference or blue */
+}
+
+.st-radio-item.active.accent-pink .st-radio-dot {
+  border-color: #ec4899;
+}
+
+.st-radio-item.active.accent-blue .st-radio-dot {
+  border-color: #3b82f6;
+}
+
+.st-radio-dot-inner {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #ec4899;
+}
+
+/* Modal Dialog System (st.dialog("Pipeline Studio")) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.studio-modal-container {
+  background-color: #0b0f17;
+  color: #f1f5f9;
+  border: 1px solid #1e293b;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 1620px;
+  height: 92vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+
+.studio-modal-header {
+  height: 58px;
+  padding: 0 1.5rem;
+  background-color: #111827;
+  border-bottom: 1px solid #1f2937;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.studio-modal-body {
+  display: flex;
+  flex: 1;
+  height: calc(92vh - 58px);
+  overflow: hidden;
+}
+
+/* Left Studio Rail */
+.studio-rail {
+  width: 360px;
+  min-width: 340px;
+  background-color: #0d121c;
+  border-right: 1px solid #1f2937;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  padding: 1.25rem;
+  gap: 1.15rem;
+}
+
+.studio-rail::-webkit-scrollbar {
+  width: 5px;
+}
+.studio-rail::-webkit-scrollbar-thumb {
+  background: #283347;
+  border-radius: 3px;
+}
+
+/* Right Studio Workspace */
+.studio-workspace {
+  flex: 1;
+  background-color: #07090e;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.studio-workspace::-webkit-scrollbar {
+  width: 6px;
+}
+.studio-workspace::-webkit-scrollbar-thumb {
+  background: #283347;
+  border-radius: 3px;
+}
+
+/* Streamlit Styled Expanders in Dark & Light Modes */
+.st-expander-container {
+  border: 1px solid #232f45;
+  border-radius: 8px;
+  background-color: #111726;
+  overflow: hidden;
+  transition: all 0.15s ease;
+}
+
+.st-expander-container.light {
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+}
+
+.st-expander-header {
+  padding: 0.6rem 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.st-expander-container.light .st-expander-header {
+  color: #334155;
+}
+
+.st-expander-header:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.st-expander-container.light .st-expander-header:hover {
+  background-color: #f1f5f9;
+}
+
+.st-expander-content {
+  padding: 0.85rem;
+  border-top: 1px solid #1f2937;
+  font-size: 0.775rem;
+  color: #94a3b8;
+}
+
+.st-expander-container.light .st-expander-content {
+  border-top: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+/* Streamlit Action Buttons */
+.st-btn-secondary {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+  background-color: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.st-btn-secondary:hover:not(:disabled) {
+  background-color: #2b3952;
+  border-color: #475569;
+}
+
+.st-btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.st-btn-primary {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.st-btn-primary:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.st-btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Chat Dataset Badge matching Streamlit */
+.chat-dataset-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #1e40af;
+  font-size: 0.8rem;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  margin-bottom: 0.75rem;
+}
+
+.chat-dataset-badge strong {
+  font-weight: 600;
+}
+
+/* Robot Assistant & User Avatars */
+.avatar-robot-yellow {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(217, 119, 6, 0.25);
+  flex-shrink: 0;
+}
+
+.avatar-user-salmon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(225, 29, 72, 0.25);
+  flex-shrink: 0;
+}
+
+/* Tool execution notice pill */
+.tool-used-badge {
+  font-style: italic;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* SQL syntax box */
+.sql-display-card {
+  background-color: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 0.75rem 0;
+}
+
+.sql-display-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+}
+
+/* Sweetviz embedded report card */
+.sweetviz-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background-color: white;
+  overflow: hidden;
+  margin-top: 0.75rem;
+}
+
+.sweetviz-header {
+  padding: 0.6rem 0.85rem;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Drag and Drop File Zone */
+.upload-dropzone-styled {
+  border: 2px dashed #334155;
+  border-radius: 12px;
+  background-color: #0f172a;
+  padding: 2.25rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.upload-dropzone-styled:hover,
+.upload-dropzone-styled.drag-over {
+  border-color: #3b82f6;
+  background-color: #1e293b;
+}
+
+.upload-dropzone-styled.light {
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
+}
+
+.upload-dropzone-styled.light:hover,
+.upload-dropzone-styled.light.drag-over {
+  border-color: #2563eb;
+  background-color: #eff6ff;
+}
+
+.file-chip-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  margin-top: 0.75rem;
+}
+
+.file-chip-card.light {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
