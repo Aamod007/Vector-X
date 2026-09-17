@@ -10,7 +10,9 @@ import {
   ChevronDown,
   ChevronRight,
   FolderOpen,
-  Trash2
+  Trash2,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { DatasetMeta } from '../types';
 import { 
@@ -18,7 +20,9 @@ import {
   updateSettings, 
   fetchProjects, 
   loadProject, 
-  clearChatHistory
+  clearChatHistory,
+  loadSampleDataset,
+  uploadDataset
 } from '../services/api';
 
 interface SidebarProps {
@@ -39,6 +43,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onUploadClick
 }) => {
   const navigate = useNavigate();
+
+  // Settings & LLM state replicated from Streamlit and matching reference image
+  const [llmProvider, setLlmProvider] = useState<'OpenAI' | 'OpenRouter' | 'Ollama'>('OpenRouter');
+  const [apiKey, setApiKey] = useState('');
+  const [apiKeyValid, setApiKeyValid] = useState<boolean | null>(null);
+  const [modelChoice, setModelChoice] = useState('z-ai/glm-5.2:free');
+  const [ollamaUrl, setOllamaUrl] = useState('http://localhost:11434');
+  const [ollamaModel, setOllamaModel] = useState('llama3.1:8b');
+  const [ollamaStatus, setOllamaStatus] = useState<string | null>(null);
+  const [recursionLimit, setRecursionLimit] = useState(10);
+  const [addMemory, setAddMemory] = useState(true);
+  const [proactiveMode, setProactiveMode] = useState(false);
+  const [intentParsing, setIntentParsing] = useState(true);
+
+  // Data options
+  const [useSample, setUseSample] = useState(false);
+  const [previewRows, setPreviewRows] = useState(5);
 
   // Pipeline options & behaviors
   const [dockedStudio, setDockedStudio] = useState(false);
@@ -83,6 +104,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Load initial settings and projects
   useEffect(() => {
     fetchSettings().then((s) => {
+      if (s.llm_provider) setLlmProvider(s.llm_provider as any);
+      if (s.model_name) setModelChoice(s.model_name);
+      if (s.openai_api_key) {
+        setApiKey(s.openai_api_key);
+        setApiKeyValid(true);
+      }
+      if (s.ollama_base_url) setOllamaUrl(s.ollama_base_url);
+      if (s.ollama_model) setOllamaModel(s.ollama_model);
+      if (s.recursion_limit !== undefined) setRecursionLimit(s.recursion_limit);
+      if (s.use_memory !== undefined) setAddMemory(s.use_memory);
+      if (s.proactive_mode !== undefined) setProactiveMode(s.proactive_mode);
+      if (s.intent_parsing !== undefined) setIntentParsing(s.intent_parsing);
+      if (s.use_sample !== undefined) setUseSample(s.use_sample);
+      if (s.preview_rows !== undefined) setPreviewRows(s.preview_rows);
       if (s.sql_url) setSqlUrl(s.sql_url);
       if (s.enable_mlflow_logging !== undefined) setEnableMlflow(s.enable_mlflow_logging);
     }).catch(console.error);
@@ -95,6 +130,65 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Sync settings helper
   const syncSetting = (patch: any) => {
     updateSettings(patch).catch(console.error);
+  };
+
+  const handleApiKeyChange = (val: string) => {
+    setApiKey(val);
+    const trimmed = val.trim();
+    if (trimmed.startsWith('sk-') || trimmed.length > 20) {
+      setApiKeyValid(true);
+      syncSetting({ openai_api_key: trimmed });
+    } else if (!trimmed) {
+      setApiKeyValid(null);
+    } else {
+      setApiKeyValid(false);
+    }
+  };
+
+  const handleToggleSampleData = async (checked: boolean) => {
+    setUseSample(checked);
+    syncSetting({ use_sample: checked });
+    if (checked) {
+      try {
+        const res = await loadSampleDataset('churn_data.csv');
+        onRefreshData?.();
+        if (res.dataset?.id) {
+          onSelectDataset(res.dataset.id);
+        }
+      } catch (e: any) {
+        console.error('Error loading sample dataset:', e);
+      }
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const res = await uploadDataset(file);
+      onRefreshData?.();
+      if (res.dataset?.id) {
+        onSelectDataset(res.dataset.id);
+      }
+    } catch (e: any) {
+      alert(`Upload failed: ${e.message || 'Unknown error'}`);
+    }
+  };
+
+  const handleCheckOllama = async () => {
+    setOllamaStatus('Checking connection...');
+    try {
+      const res = await fetch(`${ollamaUrl.replace(/\/$/, '')}/api/tags`, { method: 'GET' });
+      if (res.ok) {
+        const data = await res.json();
+        const models = (data.models || []).map((m: any) => m.name || m);
+        setOllamaStatus(`Connected! Found ${models.length} model(s).`);
+      } else {
+        setOllamaStatus(`Connection error: HTTP ${res.status}`);
+      }
+    } catch (err: any) {
+      setOllamaStatus(`Could not connect to Ollama: ${err.message || 'Offline'}`);
+    }
   };
 
   const handleLoadProject = async (openStudio: boolean) => {
@@ -184,6 +278,268 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Streamlit Pipeline Studio Sidebar Controls */}
       <div style={{ padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
         
+        {/* LLM Section (Streamlit & Reference Image Parity) */}
+        <div>
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.45rem' }}>LLM</div>
+          
+          <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '0.25rem' }}>
+            Provider
+          </label>
+          <select
+            value={llmProvider}
+            onChange={(e) => {
+              const val = e.target.value as any;
+              setLlmProvider(val);
+              syncSetting({ llm_provider: val });
+            }}
+            style={{ width: '100%', padding: '0.38rem 0.5rem', fontSize: '0.775rem', border: '1px solid #cbd5e1', borderRadius: '4px', backgroundColor: '#ffffff', color: '#0f172a', marginBottom: '0.55rem' }}
+          >
+            <option value="OpenRouter">OpenRouter</option>
+            <option value="OpenAI">OpenAI</option>
+            <option value="Ollama">Ollama</option>
+          </select>
+
+          {llmProvider !== 'Ollama' ? (
+            <>
+              <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '0.25rem' }}>
+                {llmProvider === 'OpenRouter' ? 'OpenRouter API key' : 'OpenAI API key'}
+              </label>
+              <div style={{ position: 'relative', marginBottom: apiKeyValid ? '0.25rem' : '0.55rem' }}>
+                <input
+                  type="password"
+                  placeholder="sk-..."
+                  value={apiKey}
+                  onChange={(e) => handleApiKeyChange(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.38rem 0.5rem',
+                    fontSize: '0.775rem',
+                    border: apiKeyValid ? '1.5px solid #10b981' : '1px solid #cbd5e1',
+                    borderRadius: '4px',
+                    backgroundColor: '#ffffff',
+                    color: '#0f172a'
+                  }}
+                />
+              </div>
+
+              {apiKeyValid === true && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.725rem', color: '#10b981', marginBottom: '0.55rem' }}>
+                  <CheckCircle2 size={13} strokeWidth={2.5} />
+                  <span>API Key is valid!</span>
+                </div>
+              )}
+              {apiKeyValid === false && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.725rem', color: '#ef4444', marginBottom: '0.55rem' }}>
+                  <AlertCircle size={13} />
+                  <span>Invalid API Key format</span>
+                </div>
+              )}
+
+              <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Model</label>
+              <select
+                value={modelChoice}
+                onChange={(e) => {
+                  setModelChoice(e.target.value);
+                  syncSetting({ model_name: e.target.value });
+                }}
+                style={{ width: '100%', padding: '0.38rem 0.5rem', fontSize: '0.775rem', border: '1px solid #cbd5e1', borderRadius: '4px', backgroundColor: '#ffffff', color: '#0f172a' }}
+              >
+                <option value="z-ai/glm-5.2:free">z-ai/glm-5.2:free (Free)</option>
+                <option value="gpt-4o-mini">gpt-4o-mini</option>
+                <option value="gpt-4o">gpt-4o</option>
+                <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+                <option value="gpt-4.1">gpt-4.1</option>
+                <option value="gpt-5-mini">gpt-5-mini</option>
+                <option value="gpt-5.1">gpt-5.1</option>
+                <option value="gpt-5.2">gpt-5.2</option>
+              </select>
+            </>
+          ) : (
+            <>
+              <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Ollama base URL</label>
+              <input
+                type="text"
+                value={ollamaUrl}
+                onChange={(e) => {
+                  setOllamaUrl(e.target.value);
+                  syncSetting({ ollama_base_url: e.target.value });
+                }}
+                style={{ width: '100%', padding: '0.38rem 0.5rem', fontSize: '0.775rem', border: '1px solid #cbd5e1', borderRadius: '4px', marginBottom: '0.45rem', backgroundColor: '#ffffff' }}
+              />
+              <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Ollama model</label>
+              <input
+                type="text"
+                value={ollamaModel}
+                onChange={(e) => {
+                  setOllamaModel(e.target.value);
+                  syncSetting({ ollama_model: e.target.value });
+                }}
+                style={{ width: '100%', padding: '0.38rem 0.5rem', fontSize: '0.775rem', border: '1px solid #cbd5e1', borderRadius: '4px', marginBottom: '0.5rem', backgroundColor: '#ffffff' }}
+              />
+              <button
+                onClick={handleCheckOllama}
+                style={{
+                  width: '100%',
+                  padding: '0.35rem',
+                  fontSize: '0.725rem',
+                  fontWeight: 600,
+                  backgroundColor: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Check Ollama connection
+              </button>
+              {ollamaStatus && (
+                <div style={{ fontSize: '0.7rem', color: '#475569', marginTop: '0.3rem' }}>
+                  {ollamaStatus}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0' }} />
+
+        {/* Settings Section (Recursion limit, Memory, Proactive, Intent) */}
+        <div>
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.45rem' }}>Settings</div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.75rem', color: '#475569' }}>Recursion limit</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a' }}>{recursionLimit}</span>
+            </div>
+            <input
+              type="range"
+              min={4}
+              max={20}
+              step={1}
+              value={recursionLimit}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setRecursionLimit(val);
+                syncSetting({ recursion_limit: val });
+              }}
+              style={{ width: '100%', accentColor: '#2563eb', cursor: 'pointer', marginBottom: '0.2rem' }}
+            />
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.75rem', color: '#334155', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                id="memory_check"
+                checked={addMemory}
+                onChange={(e) => {
+                  setAddMemory(e.target.checked);
+                  syncSetting({ use_memory: e.target.checked });
+                }}
+                style={{ accentColor: '#2563eb', width: '14px', height: '14px', cursor: 'pointer' }}
+              />
+              <span>Enable short-term memory</span>
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.75rem', color: '#334155', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                id="proactive_check"
+                checked={proactiveMode}
+                onChange={(e) => {
+                  setProactiveMode(e.target.checked);
+                  syncSetting({ proactive_mode: e.target.checked });
+                }}
+                style={{ accentColor: '#2563eb', width: '14px', height: '14px', cursor: 'pointer' }}
+              />
+              <span>Proactive workflow mode</span>
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.75rem', color: '#334155', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                id="intent_check"
+                checked={intentParsing}
+                onChange={(e) => {
+                  setIntentParsing(e.target.checked);
+                  syncSetting({ intent_parsing: e.target.checked });
+                }}
+                style={{ accentColor: '#2563eb', width: '14px', height: '14px', cursor: 'pointer' }}
+              />
+              <span>LLM intent parsing</span>
+            </label>
+          </div>
+        </div>
+
+        <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0' }} />
+
+        {/* Data options Section */}
+        <div>
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.45rem' }}>Data options</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.75rem', color: '#334155', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                id="sample_churn_check"
+                checked={useSample}
+                onChange={(e) => handleToggleSampleData(e.target.checked)}
+                style={{ accentColor: '#2563eb', width: '14px', height: '14px', cursor: 'pointer' }}
+              />
+              <span>Load sample Telco churn data</span>
+            </label>
+
+            <div>
+              <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Upload CSV</label>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                style={{ fontSize: '0.725rem', width: '100%', color: '#475569' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Preview rows</label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={previewRows}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setPreviewRows(val);
+                  syncSetting({ preview_rows: val });
+                }}
+                style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.775rem', border: '1px solid #cbd5e1', borderRadius: '4px', backgroundColor: '#ffffff', color: '#0f172a' }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0' }} />
+
+        {/* Dataset selection (Active override) */}
+        <div>
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.45rem' }}>Dataset selection</div>
+          
+          <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Active dataset (override)</label>
+          <select
+            value={activeDatasetId || ''}
+            onChange={(e) => onSelectDataset(e.target.value)}
+            style={{ width: '100%', padding: '0.38rem 0.5rem', fontSize: '0.775rem', border: '1px solid #cbd5e1', borderRadius: '4px', backgroundColor: '#ffffff', color: '#0f172a' }}
+          >
+            <option value="">Auto (use supervisor active)</option>
+            {datasets.map((ds) => (
+              <option key={ds.id} value={ds.id}>
+                {ds.stage}: {ds.label} ({ds.records} rows)
+              </option>
+            ))}
+          </select>
+          <span style={{ fontSize: '0.675rem', color: '#94a3b8', marginTop: '0.25rem', display: 'block' }}>
+            Overrides which dataset is considered active for downstream steps.
+          </span>
+        </div>
+
+        <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0' }} />
+
         {/* Open Pipeline Studio Button & Docked toggle */}
         <div>
           <button
@@ -287,30 +643,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
           )}
-        </div>
-
-        <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0' }} />
-
-        {/* Dataset selection (Active override) */}
-        <div>
-          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.4rem' }}>Dataset selection</div>
-          
-          <label style={{ fontSize: '0.725rem', color: '#64748b' }}>Active dataset (override)</label>
-          <select
-            value={activeDatasetId || ''}
-            onChange={(e) => onSelectDataset(e.target.value)}
-            style={{ width: '100%', padding: '0.35rem', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '4px', marginTop: '0.2rem' }}
-          >
-            <option value="">Auto (use supervisor active)</option>
-            {datasets.map((ds) => (
-              <option key={ds.id} value={ds.id}>
-                {ds.stage}: {ds.label} ({ds.records} rows)
-              </option>
-            ))}
-          </select>
-          <span style={{ fontSize: '0.675rem', color: '#94a3b8', marginTop: '0.25rem', display: 'block' }}>
-            Overrides which dataset is considered active for downstream steps.
-          </span>
         </div>
 
         <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0' }} />

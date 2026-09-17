@@ -122,6 +122,7 @@ export const App: React.FC = () => {
             datasets={datasets}
             activeDatasetId={activeDatasetId}
             onSelectDataset={handleSelectDataset}
+            onRefreshData={loadInitialData}
             onUploadClick={() => navigate('/datasets')}
           />
         )}
